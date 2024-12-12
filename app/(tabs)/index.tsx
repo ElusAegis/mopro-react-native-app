@@ -14,10 +14,8 @@ export default function HomeScreen() {
     const [inputs, setInputs] = useState<string>("");
     const [proof, setProof] = useState<string>("");
     async function genProof(): Promise<void> {
-        const asset = Asset.fromURI(
-            "https://github.com/zkmopro/mopro/raw/ae88356e680ac4d785183267d6147167fabe071c/test-vectors/circom/multiplier2_final.zkey"
-        );
         const newFileName = "multiplier2_final.zkey";
+        const asset = Asset.fromModule(require(`@/assets/keys/${newFileName}`));
         const newFilePath = `${FileSystem.documentDirectory}${newFileName}`;
         const fileInfo = await FileSystem.getInfoAsync(newFilePath);
         if (!fileInfo.exists) {
