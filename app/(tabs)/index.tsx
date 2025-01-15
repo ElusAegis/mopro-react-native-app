@@ -1,9 +1,21 @@
-import { Image, StyleSheet, Button, TextInput, View, Text } from "react-native";
+import {
+    Image,
+    StyleSheet,
+    Button,
+    TextInput,
+    View,
+    Text,
+    Platform,
+} from "react-native";
 
 import ParallaxScrollView from "@/components/ParallaxScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { generateCircomProof, Result } from "@/modules/mopro";
+import {
+    generateCircomProof,
+    generateCircomProofWeb,
+    Result,
+} from "@/modules/mopro";
 import * as FileSystem from "expo-file-system";
 import { useState } from "react";
 import { Asset } from "expo-asset";
@@ -14,35 +26,50 @@ export default function HomeScreen() {
     const [inputs, setInputs] = useState<string>("");
     const [proof, setProof] = useState<string>("");
     async function genProof(): Promise<void> {
-        const newFileName = "multiplier2_final.zkey";
-        const asset = Asset.fromModule(require(`@/assets/keys/${newFileName}`));
-        const newFilePath = `${FileSystem.documentDirectory}${newFileName}`;
-        const fileInfo = await FileSystem.getInfoAsync(newFilePath);
-        if (!fileInfo.exists) {
-            const file = await asset.downloadAsync();
-            if (file.localUri === null) {
-                throw new Error("Failed to download the file");
-            }
-            try {
-                await FileSystem.moveAsync({
-                    from: file.localUri,
-                    to: newFilePath,
-                });
-            } catch (error) {
-                console.error("Error renaming the file:", error);
-            }
-        }
         const circuitInputs = {
             a: [a],
             b: [b],
         };
-        const res: Result = generateCircomProof(
-            newFilePath.replace("file://", ""),
-            circuitInputs
-        );
-        console.log(res);
-        setProof(JSON.stringify(res.proof));
-        setInputs(JSON.stringify(res.inputs));
+        if (Platform.OS === "web") {
+            const wasmPath = "multiplier2.wasm";
+            const zkeyPath = "multiplier2_final.zkey";
+            const res: Result = await generateCircomProofWeb(
+                wasmPath,
+                zkeyPath,
+                circuitInputs
+            );
+            setProof(JSON.stringify(res.proof));
+            setInputs(JSON.stringify(res.inputs));
+        } else if (Platform.OS === "android" || Platform.OS === "ios") {
+            const newFileName = "multiplier2_final.zkey";
+            const asset = Asset.fromModule(
+                require(`@/assets/keys/${newFileName}`)
+            );
+            const newFilePath = `${FileSystem.documentDirectory}${newFileName}`;
+            const fileInfo = await FileSystem.getInfoAsync(newFilePath);
+            if (!fileInfo.exists) {
+                const file = await asset.downloadAsync();
+                if (file.localUri === null) {
+                    throw new Error("Failed to download the file");
+                }
+                try {
+                    await FileSystem.moveAsync({
+                        from: file.localUri,
+                        to: newFilePath,
+                    });
+                } catch (error) {
+                    console.error("Error renaming the file:", error);
+                }
+            }
+
+            const res: Result = generateCircomProof(
+                newFilePath.replace("file://", ""),
+                circuitInputs
+            );
+            console.log(res);
+            setProof(JSON.stringify(res.proof));
+            setInputs(JSON.stringify(res.inputs));
+        }
     }
     return (
         <ParallaxScrollView
