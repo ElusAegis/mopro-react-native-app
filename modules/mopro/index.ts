@@ -37,6 +37,10 @@ export function hello(): string {
   return MoproModule.hello();
 }
 
+export async function generateCircomProofWeb(wasmPath: string, zkeyPath: string, circuitInputs: { [key: string]: string[] }): Promise<Result> {
+  return await MoproModule.generateCircomProofWeb(wasmPath, zkeyPath, circuitInputs);
+}
+
 export function generateCircomProof(zkeyPath: string, circuitInputs: { [key: string]: string[] }): Result {
   return MoproModule.generateCircomProof(zkeyPath, circuitInputs);
 }

@@ -2,8 +2,6 @@
 
 This is a sample [Expo](https://expo.dev) app that demonstrates how mopro can be used to prove a `multiplier2` circuit.
 
-> Example zkey: [multiplier2_final.zkey](https://github.com/zkmopro/mopro/raw/ae88356e680ac4d785183267d6147167fabe071c/test-vectors/circom/multiplier2_final.zkey)
-
 Learn more about Mopro: https://zkmopro.org.
 
 ## Get started
@@ -28,12 +26,11 @@ npm install
     npm run ios
     ```
 
--   start a web app (WIP)
+-   start a web app
 
     ```bash
     npm run web
     ```
-
 
 ### 3. Update Mopro Bindings
 
@@ -42,15 +39,17 @@ npm install
 
 -   Copy the `MoproAndroidBindings/jniLibs` directory to `modules/mopro/android/src/main/jniLibs`. <br/>
     And copy `MoproAndroidBindings/uniffi` directory to `modules/mopro/android/src/main/java/uniffi`. <br/>
-    The folder structure should be as follows: <br/>
 
 ## Screenshots
 
 ### iOS
 
-<img src="./images/Simulator Screenshot - iPhone 15 Pro - 2024-08-22 at 21.53.19.png" width=300>
+<img src="./images/iPhone_Screenshot.png" width=300>
 
 ### Android
 
-<img src="./images/Screenshot_20240822_215337.png" width=300>
-````
+<img src="./images/Android_Screenshot.png" width=300>
+
+### Web
+
+<img src="./images/Web_Screenshot.png" width=300>
