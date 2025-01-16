@@ -31,8 +31,8 @@ export default function HomeScreen() {
             b: [b],
         };
         if (Platform.OS === "web") {
-            const wasmPath = "multiplier2.wasm";
-            const zkeyPath = "multiplier2_final.zkey";
+            const wasmPath = "https://ci-keys.zkmopro.org/multiplier2.wasm";
+            const zkeyPath = "https://ci-keys.zkmopro.org/multiplier2_final.zkey";
             const res: Result = await generateCircomProofWeb(
                 wasmPath,
                 zkeyPath,
