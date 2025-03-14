@@ -64,7 +64,7 @@ export default function HomeScreen() {
 
             const res: Result = generateCircomProof(
                 newFilePath.replace("file://", ""),
-                circuitInputs
+                JSON.stringify(circuitInputs)
             );
             console.log(res);
             setProof(JSON.stringify(res.proof));

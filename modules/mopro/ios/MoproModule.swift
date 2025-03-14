@@ -21,9 +21,10 @@ func convertType(proof: ProofCalldata) -> ExpoProof {
   return expoProof
 }
 
-func generateProof(zkeyPath: String, circuitInputs: [String: [String]]) -> Result {
+func generateProof(zkeyPath: String, circuitInputs: String) -> Result {
   do {
-    let res = try generateCircomProof(zkeyPath: zkeyPath, circuitInputs: circuitInputs)
+    let res = try generateCircomProof(
+      zkeyPath: zkeyPath, circuitInputs: circuitInputs, proofLib: ProofLib.arkworks)
     let proof = toEthereumProof(proof: res.proof)
     let result = Result()
     result.inputs = toEthereumInputs(inputs: res.inputs)
@@ -32,6 +33,7 @@ func generateProof(zkeyPath: String, circuitInputs: [String: [String]]) -> Resul
   } catch {
     print("Error: \(error)")
     let result = Result()
+    result.inputs = [error.localizedDescription]
     return result
   }
 }
@@ -60,7 +62,7 @@ public class MoproModule: Module {
     }
 
     Function("generateCircomProof") {
-      (zkeyPath: String, circuitInputs: [String: [String]]) -> Result in
+      (zkeyPath: String, circuitInputs: String) -> Result in
 
       // Call into the compiled static library
       return generateProof(zkeyPath: zkeyPath, circuitInputs: circuitInputs)

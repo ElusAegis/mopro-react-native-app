@@ -41,7 +41,7 @@ export async function generateCircomProofWeb(wasmPath: string, zkeyPath: string,
   return await MoproModule.generateCircomProofWeb(wasmPath, zkeyPath, circuitInputs);
 }
 
-export function generateCircomProof(zkeyPath: string, circuitInputs: { [key: string]: string[] }): Result {
+export function generateCircomProof(zkeyPath: string, circuitInputs: string): Result {
   return MoproModule.generateCircomProof(zkeyPath, circuitInputs);
 }
 

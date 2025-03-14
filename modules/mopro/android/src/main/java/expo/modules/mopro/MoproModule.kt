@@ -7,6 +7,7 @@ import uniffi.mopro.ProofCalldata
 import uniffi.mopro.generateCircomProof
 import uniffi.mopro.toEthereumInputs
 import uniffi.mopro.toEthereumProof
+import uniffi.mopro.ProofLib
 
 fun convertType(proof: ProofCalldata): ExpoProof {
   var a = ExpoG1(proof.a.x, proof.a.y)
@@ -16,9 +17,9 @@ fun convertType(proof: ProofCalldata): ExpoProof {
   return output
 }
 
-fun generateProof(zkeyPath: String, circuitInputs: Map<String, List<String>>): Result {
+fun generateProof(zkeyPath: String, circuitInputs: String): Result {
   val file = File(zkeyPath)
-  val res = generateCircomProof(file.absolutePath, circuitInputs)
+  val res = generateCircomProof(file.absolutePath, circuitInputs, ProofLib.ARKWORKS)
   val proof = toEthereumProof(res.proof)
   val inputs = toEthereumInputs(res.inputs)
   val result = Result(convertType(proof), inputs)
@@ -47,7 +48,7 @@ class MoproModule : Module() {
     // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
     Function("hello") { "Hello world! 👋" }
 
-    Function("generateCircomProof") { zkeyPath: String, circuitInputs: Map<String, List<String>> ->
+    Function("generateCircomProof") { zkeyPath: String, circuitInputs: String ->
       generateProof(zkeyPath, circuitInputs)
     }
 
