@@ -3,13 +3,11 @@ package expo.modules.mopro
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.io.File
-import uniffi.mopro.ProofCalldata
+import uniffi.mopro.CircomProof
 import uniffi.mopro.generateCircomProof
-import uniffi.mopro.toEthereumInputs
-import uniffi.mopro.toEthereumProof
 import uniffi.mopro.ProofLib
 
-fun convertType(proof: ProofCalldata): ExpoProof {
+fun convertType(proof: CircomProof): ExpoProof {
   var a = ExpoG1(proof.a.x, proof.a.y)
   var b = ExpoG2(proof.b.x, proof.b.y)
   var c = ExpoG1(proof.c.x, proof.c.y)
@@ -20,9 +18,7 @@ fun convertType(proof: ProofCalldata): ExpoProof {
 fun generateProof(zkeyPath: String, circuitInputs: String): Result {
   val file = File(zkeyPath)
   val res = generateCircomProof(file.absolutePath, circuitInputs, ProofLib.ARKWORKS)
-  val proof = toEthereumProof(res.proof)
-  val inputs = toEthereumInputs(res.inputs)
-  val result = Result(convertType(proof), inputs)
+  val result = Result(convertType(res.proof), res.inputs)
   return result
 }
 

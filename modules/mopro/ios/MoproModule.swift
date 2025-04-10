@@ -1,7 +1,7 @@
 import ExpoModulesCore
 import moproFFI
 
-func convertType(proof: ProofCalldata) -> ExpoProof {
+func convertType(proof: CircomProof) -> ExpoProof {
   var a = ExpoG1()
   a.x = proof.a.x
   a.y = proof.a.y
@@ -25,10 +25,9 @@ func generateProof(zkeyPath: String, circuitInputs: String) -> Result {
   do {
     let res = try generateCircomProof(
       zkeyPath: zkeyPath, circuitInputs: circuitInputs, proofLib: ProofLib.arkworks)
-    let proof = toEthereumProof(proof: res.proof)
     let result = Result()
-    result.inputs = toEthereumInputs(inputs: res.inputs)
-    result.proof = convertType(proof: proof)
+    result.inputs = res.inputs
+    result.proof = convertType(proof: res.proof)
     return result
   } catch {
     print("Error: \(error)")
