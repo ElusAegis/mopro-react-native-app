@@ -22,3 +22,4 @@ expo-env.d.ts
 /ios
 /android
 modules/mopro/android/build/
+modules/mopro/android/.gradle/
