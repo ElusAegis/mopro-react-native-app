@@ -1,40 +1,61 @@
 import ExpoModulesCore
 import moproFFI
 
-func convertType(proof: CircomProof) -> ExpoProof {
-  var a = ExpoG1()
+func convertCircomProof(proof: CircomProof) -> ExpoProof {
+  let a = ExpoG1()
   a.x = proof.a.x
   a.y = proof.a.y
+  a.z = proof.a.z
 
-  var b = ExpoG2()
+  let b = ExpoG2()
   b.x = proof.b.x
   b.y = proof.b.y
+  b.z = proof.b.z
 
-  var c = ExpoG1()
+  let c = ExpoG1()
   c.x = proof.c.x
   c.y = proof.c.y
+  c.z = proof.c.z
 
-  var expoProof = ExpoProof()
+  let expoProof = ExpoProof()
   expoProof.a = a
   expoProof.b = b
   expoProof.c = c
+  expoProof.protocol = proof.protocol
+  expoProof.curve = proof.curve
   return expoProof
 }
 
-func generateProof(zkeyPath: String, circuitInputs: String) -> Result {
-  do {
-    let res = try generateCircomProof(
-      zkeyPath: zkeyPath, circuitInputs: circuitInputs, proofLib: ProofLib.arkworks)
-    let result = Result()
-    result.inputs = res.inputs
-    result.proof = convertType(proof: res.proof)
-    return result
-  } catch {
-    print("Error: \(error)")
-    let result = Result()
-    result.inputs = [error.localizedDescription]
-    return result
+func convertCircomProofResult(proofResult: ExpoCircomProofResult) -> CircomProofResult {
+  guard let proof = proofResult.proof,
+    let a = proof.a,
+    let b = proof.b,
+    let c = proof.c,
+    let inputs = proofResult.inputs,
+    let `protocol` = proof.protocol,
+    let curve = proof.curve
+  else {
+    fatalError("Invalid proof result")
   }
+
+  let g1a = G1(x: a.x ?? "0", y: a.y ?? "0", z: a.z ?? "1")
+  let g2b = G2(x: b.x ?? ["1", "0"], y: b.y ?? ["1", "0"], z: b.z ?? ["1", "0"])
+  let g1c = G1(x: c.x ?? "0", y: c.y ?? "0", z: c.z ?? "1")
+
+  let circomProof = CircomProof(
+    a: g1a, b: g2b, c: g1c, protocol: `protocol`, curve: curve)
+  let circomProofResult = CircomProofResult(proof: circomProof, inputs: inputs)
+  return circomProofResult
+}
+
+enum CircomError: Error {
+  case circomProofGenerationFailed(String)
+  case circomProofVerificationFailed(String)
+}
+
+enum Halo2Error: Error {
+  case halo2ProofGenerationFailed(String)
+  case halo2ProofVerificationFailed(String)
 }
 
 public class MoproModule: Module {
@@ -60,11 +81,62 @@ public class MoproModule: Module {
       return "Hello world! 👋"
     }
 
-    Function("generateCircomProof") {
-      (zkeyPath: String, circuitInputs: String) -> Result in
+    AsyncFunction("generateCircomProof") {
+      (zkeyPath: String, circuitInputs: String) -> ExpoCircomProofResult in
 
-      // Call into the compiled static library
-      return generateProof(zkeyPath: zkeyPath, circuitInputs: circuitInputs)
+      do {
+        let res = try generateCircomProof(
+          zkeyPath: zkeyPath, circuitInputs: circuitInputs, proofLib: ProofLib.arkworks)
+        let result = ExpoCircomProofResult()
+        result.inputs = res.inputs
+        result.proof = convertCircomProof(proof: res.proof)
+        return result
+      } catch {
+        throw CircomError.circomProofGenerationFailed(error.localizedDescription)
+      }
+    }
+
+    AsyncFunction("verifyCircomProof") {
+      (zkeyPath: String, proofResult: ExpoCircomProofResult) -> Bool in
+
+      do {
+        let isValid = try verifyCircomProof(
+          zkeyPath: zkeyPath,
+          proofResult: convertCircomProofResult(proofResult: proofResult),
+          proofLib: ProofLib.arkworks
+        )
+        return isValid
+      } catch {
+        throw CircomError.circomProofVerificationFailed(error.localizedDescription)
+      }
+    }
+
+    AsyncFunction("generateHalo2Proof") {
+      (srsPath: String, pkPath: String, circuitInputs: [String: [String]]) throws -> ExpoHalo2ProofResult
+      in
+
+      do {
+        let res = try generateHalo2Proof(
+          srsPath: srsPath, pkPath: pkPath, circuitInputs: circuitInputs)
+        let result = ExpoHalo2ProofResult()
+        result.inputs = res.inputs
+        result.proof = res.proof
+        return result
+      } catch {
+        throw Halo2Error.halo2ProofGenerationFailed(error.localizedDescription)
+      }
+    }
+
+    AsyncFunction("verifyHalo2Proof") {
+      (srsPath: String, vkPath: String, proof: Data, publicInput: Data) throws -> Bool in
+
+      do {
+        let isValid = try verifyHalo2Proof(
+          srsPath: srsPath, vkPath: vkPath, proof: proof, publicInput: publicInput)
+        return isValid
+      } catch {
+        throw Halo2Error.halo2ProofVerificationFailed(error.localizedDescription)
+      }
     }
 
     // Defines a JavaScript function that always returns a Promise and whose native code
