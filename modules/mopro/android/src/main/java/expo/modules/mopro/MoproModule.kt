@@ -107,6 +107,24 @@ class MoproModule : Module() {
         }   
     }
 
+    AsyncFunction("generateNoirProof") { circuitPath: String, srsPath: String?, inputs: List<String> ->
+      try {
+        val res = generateNoirProof(circuitPath, srsPath, inputs)
+        res
+      } catch (e: Exception) {
+        throw CodedException("GenerateProofFailed", "Unknown error occurred during proof generation", e)
+      }   
+    }
+
+    AsyncFunction("verifyNoirProof") { circuitPath: String, proof: ByteArray ->
+      try {
+        val res = verifyNoirProof(circuitPath, proof)
+        res
+      } catch (e: Exception) {
+        throw CodedException("VerifyProofFailed", "Unknown error occurred during proof verification", e)
+      }   
+    }
+
     // Defines a JavaScript function that always returns a Promise and whose native code
     // is by default dispatched on the different thread than the JavaScript runtime runs on.
     AsyncFunction("setValueAsync") { value: String ->
