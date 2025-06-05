@@ -22,16 +22,18 @@ import {
     verifyHalo2Proof,
     verifyCircomProof,
     CircomProof,
+    generateNoirProof,
+    verifyNoirProof,
 } from "@/modules/mopro";
 import * as FileSystem from "expo-file-system";
 import { useState } from "react";
 import { Asset } from "expo-asset";
 
-type ProofType = "circom" | "halo2";
+type ProofType = "circom" | "halo2" | "noir";
 
 function CircomProofComponent() {
-    const [a, setA] = useState("");
-    const [b, setB] = useState("");
+    const [a, setA] = useState("3");
+    const [b, setB] = useState("4");
     const [inputs, setInputs] = useState<string[]>([]);
     const [proof, setProof] = useState<CircomProof>({
         a: { x: "", y: "", z: "" },
@@ -175,7 +177,7 @@ function CircomProofComponent() {
 }
 
 function Halo2ProofComponent() {
-    const [out, setOut] = useState("");
+    const [out, setOut] = useState("55");
     const [inputs, setInputs] = useState<Uint8Array>(new Uint8Array());
     const [proof, setProof] = useState<Uint8Array>(new Uint8Array());
     const [isValid, setIsValid] = useState<string>("");
@@ -313,6 +315,126 @@ function Halo2ProofComponent() {
     );
 }
 
+function NoirProofComponent() {
+    const [a, setA] = useState("3");
+    const [b, setB] = useState("4");
+    const [inputs, setInputs] = useState<string[]>([]);
+    const [proof, setProof] = useState<Uint8Array>(new Uint8Array());
+    const [isValid, setIsValid] = useState<string>("");
+
+    async function genProof(): Promise<void> {
+        const circuitInputs = [a, b];
+        if (Platform.OS === "web") {
+            console.log("not implemented");
+        } else if (Platform.OS === "android" || Platform.OS === "ios") {
+            const circuitName = "noir_multiplier2.json";
+
+            const content = require(`@/assets/keys/${circuitName}`);
+
+            const newFilePath = `${FileSystem.documentDirectory}${circuitName}`;
+
+            const fileInfo = await FileSystem.getInfoAsync(newFilePath);
+            if (!fileInfo.exists) {
+                try {
+                    await FileSystem.writeAsStringAsync(
+                        newFilePath,
+                        JSON.stringify(content)
+                    );
+                } catch (error) {
+                    console.error("Error copying file:", error);
+                    throw error;
+                }
+            }
+
+            try {
+                const res: Uint8Array = await generateNoirProof(
+                    newFilePath.replace("file://", ""),
+                    null,
+                    circuitInputs
+                );
+                setProof(res);
+            } catch (error) {
+                console.error("Error generating proof:", error);
+            }
+        }
+    }
+
+    async function verifyProof(): Promise<void> {
+        if (Platform.OS === "web") {
+            setIsValid("not implemented");
+        } else if (Platform.OS === "android" || Platform.OS === "ios") {
+            const circuitName = "noir_multiplier2.json";
+
+            const content = require(`@/assets/keys/${circuitName}`);
+
+            const newFilePath = `${FileSystem.documentDirectory}${circuitName}`;
+
+            const fileInfo = await FileSystem.getInfoAsync(newFilePath);
+            if (!fileInfo.exists) {
+                try {
+                    await FileSystem.writeAsStringAsync(
+                        newFilePath,
+                        JSON.stringify(content)
+                    );
+                } catch (error) {
+                    console.error("Error copying file:", error);
+                    throw error;
+                }
+            }
+
+            try {
+                const res: boolean = await verifyNoirProof(
+                    newFilePath.replace("file://", ""),
+                    proof
+                );
+                setIsValid(res.toString());
+            } catch (error) {
+                console.error("Error verifying proof:", error);
+            }
+        }
+    }
+
+    return (
+        <View style={styles.proofContainer}>
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>a</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Enter value for a"
+                    value={a}
+                    onChangeText={setA}
+                    keyboardType="numeric"
+                />
+            </View>
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>b</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Enter value for b"
+                    value={b}
+                    onChangeText={setB}
+                    keyboardType="numeric"
+                />
+            </View>
+            <Button title="Generate Noir Proof" onPress={() => genProof()} />
+            <Button title="Verify Noir Proof" onPress={() => verifyProof()} />
+            <ThemedView style={styles.stepContainer}>
+                <ThemedText type="subtitle">Proof is Valid:</ThemedText>
+                <Text style={styles.output}>{isValid}</Text>
+                {/* TODO: add public signals */}
+                {/* <ThemedText type="subtitle">Public Signals:</ThemedText>
+                <ScrollView style={styles.outputScroll}>
+                    <Text style={styles.output}>{JSON.stringify(inputs)}</Text>
+                </ScrollView> */}
+                <ThemedText type="subtitle">Proof:</ThemedText>
+                <ScrollView style={styles.outputScroll}>
+                    <Text style={styles.output}>{proof}</Text>
+                </ScrollView>
+            </ThemedView>
+        </View>
+    );
+}
+
 export default function HomeScreen() {
     const [activeTab, setActiveTab] = useState<ProofType>("circom");
 
@@ -345,12 +467,23 @@ export default function HomeScreen() {
                 >
                     <Text style={styles.tabText}>Halo2 Proof</Text>
                 </Pressable>
+                <Pressable
+                    style={[
+                        styles.tab,
+                        activeTab === "noir" && styles.activeTab,
+                    ]}
+                    onPress={() => setActiveTab("noir")}
+                >
+                    <Text style={styles.tabText}>Noir Proof</Text>
+                </Pressable>
             </View>
 
             {activeTab === "circom" ? (
                 <CircomProofComponent />
-            ) : (
+            ) : activeTab === "halo2" ? (
                 <Halo2ProofComponent />
+            ) : (
+                <NoirProofComponent />
             )}
         </ParallaxScrollView>
     );

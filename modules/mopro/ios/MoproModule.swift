@@ -58,6 +58,11 @@ enum Halo2Error: Error {
   case halo2ProofVerificationFailed(String)
 }
 
+enum NoirError: Error {
+  case noirProofGenerationFailed(String)
+  case noirProofVerificationFailed(String)
+}
+
 public class MoproModule: Module {
   // Each module class must implement the definition function. The definition consists of components
   // that describes the module's functionality and behavior.
@@ -136,6 +141,29 @@ public class MoproModule: Module {
         return isValid
       } catch {
         throw Halo2Error.halo2ProofVerificationFailed(error.localizedDescription)
+      }
+    }
+
+    AsyncFunction("generateNoirProof") {
+      (circuitPath: String, srsPath: String?, inputs: [String]) throws -> Data in
+
+      do {
+        let res = try generateNoirProof(circuitPath: circuitPath, srsPath: srsPath, inputs: inputs)
+        return res
+      } catch {
+        print("error", error)
+        throw NoirError.noirProofGenerationFailed(error.localizedDescription)
+      }
+    }
+
+    AsyncFunction("verifyNoirProof") {
+      (circuitPath: String, proof: Data) throws -> Bool in
+
+      do {
+        let isValid = try verifyNoirProof(circuitPath: circuitPath, proof: proof)
+        return isValid
+      } catch {
+        throw NoirError.noirProofVerificationFailed(error.localizedDescription)
       }
     }
 

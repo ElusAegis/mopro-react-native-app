@@ -66,6 +66,14 @@ export async function verifyHalo2Proof(srsPath: string, vkPath: string, proof: U
   return await MoproModule.verifyHalo2Proof(srsPath, vkPath, proof, publicInput);
 }
 
+export async function generateNoirProof(circuitPath: string, srsPath: string | null, inputs: string[]): Promise<Uint8Array> {
+  return await MoproModule.generateNoirProof(circuitPath, srsPath, inputs);
+}
+
+export async function verifyNoirProof(circuitPath: string, proof: Uint8Array): Promise<boolean> {
+  return await MoproModule.verifyNoirProof(circuitPath, proof);
+}
+
 export async function setValueAsync(value: string) {
   return await MoproModule.setValueAsync(value);
 }
