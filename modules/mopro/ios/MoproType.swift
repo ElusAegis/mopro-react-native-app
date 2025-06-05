@@ -6,6 +6,9 @@ struct ExpoG1: Record {
 
   @Field
   var y: String?
+
+  @Field
+  var z: String?
 }
 
 struct ExpoG2: Record {
@@ -14,6 +17,9 @@ struct ExpoG2: Record {
 
   @Field
   var y: [String]?
+
+  @Field
+  var z: [String]?
 }
 
 struct ExpoProof: Record {
@@ -25,13 +31,28 @@ struct ExpoProof: Record {
 
   @Field
   var c: ExpoG1?
+
+  @Field
+  var `protocol`: String?
+
+  @Field
+  var curve: String?
 }
 
-struct Result: Record {
+struct ExpoCircomProofResult: Record {
   @Field
   var inputs: [String]?
 
   @Field
   var proof: ExpoProof?
+
+}
+
+struct ExpoHalo2ProofResult: Record {
+  @Field
+  var inputs: Data?
+
+  @Field
+  var proof: Data?
 
 }

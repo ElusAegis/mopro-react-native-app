@@ -6,6 +6,8 @@ import {
     View,
     Text,
     Platform,
+    Pressable,
+    ScrollView,
 } from "react-native";
 
 import ParallaxScrollView from "@/components/ParallaxScrollView";
@@ -14,17 +16,32 @@ import { ThemedView } from "@/components/ThemedView";
 import {
     generateCircomProof,
     generateCircomProofWeb,
-    Result,
+    CircomProofResult,
+    generateHalo2Proof,
+    Halo2ProofResult,
+    verifyHalo2Proof,
+    verifyCircomProof,
+    CircomProof,
 } from "@/modules/mopro";
 import * as FileSystem from "expo-file-system";
 import { useState } from "react";
 import { Asset } from "expo-asset";
 
-export default function HomeScreen() {
+type ProofType = "circom" | "halo2";
+
+function CircomProofComponent() {
     const [a, setA] = useState("");
     const [b, setB] = useState("");
-    const [inputs, setInputs] = useState<string>("");
-    const [proof, setProof] = useState<string>("");
+    const [inputs, setInputs] = useState<string[]>([]);
+    const [proof, setProof] = useState<CircomProof>({
+        a: { x: "", y: "", z: "" },
+        b: { x: [], y: [], z: [] },
+        c: { x: "", y: "", z: "" },
+        protocol: "",
+        curve: "",
+    });
+    const [isValid, setIsValid] = useState<string>("");
+
     async function genProof(): Promise<void> {
         const circuitInputs = {
             a: [a],
@@ -32,14 +49,15 @@ export default function HomeScreen() {
         };
         if (Platform.OS === "web") {
             const wasmPath = "https://ci-keys.zkmopro.org/multiplier2.wasm";
-            const zkeyPath = "https://ci-keys.zkmopro.org/multiplier2_final.zkey";
-            const res: Result = await generateCircomProofWeb(
+            const zkeyPath =
+                "https://ci-keys.zkmopro.org/multiplier2_final.zkey";
+            const res: CircomProofResult = await generateCircomProofWeb(
                 wasmPath,
                 zkeyPath,
                 circuitInputs
             );
-            setProof(JSON.stringify(res.proof));
-            setInputs(JSON.stringify(res.inputs));
+            setProof(res.proof);
+            setInputs(res.inputs);
         } else if (Platform.OS === "android" || Platform.OS === "ios") {
             const newFileName = "multiplier2_final.zkey";
             const asset = Asset.fromModule(
@@ -62,25 +80,62 @@ export default function HomeScreen() {
                 }
             }
 
-            const res: Result = generateCircomProof(
-                newFilePath.replace("file://", ""),
-                JSON.stringify(circuitInputs)
-            );
-            console.log(res);
-            setProof(JSON.stringify(res.proof));
-            setInputs(JSON.stringify(res.inputs));
+            try {
+                const res: CircomProofResult = await generateCircomProof(
+                    newFilePath.replace("file://", ""),
+                    JSON.stringify(circuitInputs)
+                );
+                setProof(res.proof);
+                setInputs(res.inputs);
+            } catch (error) {
+                console.error("Error generating proof:", error);
+            }
         }
     }
-    return (
-        <ParallaxScrollView
-            headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
-            headerImage={
-                <Image
-                    source={require("@/assets/images/partial-react-logo.png")}
-                    style={styles.reactLogo}
-                />
+
+    async function verifyProof(): Promise<void> {
+        if (Platform.OS === "web") {
+            setIsValid("not implemented");
+        } else if (Platform.OS === "android" || Platform.OS === "ios") {
+            const newFileName = "multiplier2_final.zkey";
+            const asset = Asset.fromModule(
+                require(`@/assets/keys/${newFileName}`)
+            );
+            const newFilePath = `${FileSystem.documentDirectory}${newFileName}`;
+            const fileInfo = await FileSystem.getInfoAsync(newFilePath);
+            if (!fileInfo.exists) {
+                const file = await asset.downloadAsync();
+                if (file.localUri === null) {
+                    throw new Error("Failed to download the file");
+                }
+                try {
+                    await FileSystem.moveAsync({
+                        from: file.localUri,
+                        to: newFilePath,
+                    });
+                } catch (error) {
+                    console.error("Error renaming the file:", error);
+                }
             }
-        >
+
+            try {
+                const circomProofResult: CircomProofResult = {
+                    proof: proof,
+                    inputs: inputs,
+                };
+                const res: boolean = await verifyCircomProof(
+                    newFilePath.replace("file://", ""),
+                    circomProofResult
+                );
+                setIsValid(res.toString());
+            } catch (error) {
+                console.error("Error verifying proof:", error);
+            }
+        }
+    }
+
+    return (
+        <View style={styles.proofContainer}>
             <View style={styles.inputContainer}>
                 <Text style={styles.label}>a</Text>
                 <TextInput
@@ -101,13 +156,202 @@ export default function HomeScreen() {
                     keyboardType="numeric"
                 />
             </View>
-            <Button title="Proof" onPress={() => genProof()} />
+            <Button title="Generate Circom Proof" onPress={() => genProof()} />
+            <Button title="Verify Circom Proof" onPress={() => verifyProof()} />
             <ThemedView style={styles.stepContainer}>
+                <ThemedText type="subtitle">Proof is Valid:</ThemedText>
+                <Text style={styles.output}>{isValid}</Text>
                 <ThemedText type="subtitle">Public Signals:</ThemedText>
-                <Text style={styles.output}>{inputs}</Text>
+                <ScrollView style={styles.outputScroll}>
+                    <Text style={styles.output}>{JSON.stringify(inputs)}</Text>
+                </ScrollView>
                 <ThemedText type="subtitle">Proof:</ThemedText>
-                <Text style={styles.output}>{proof}</Text>
+                <ScrollView style={styles.outputScroll}>
+                    <Text style={styles.output}>{JSON.stringify(proof)}</Text>
+                </ScrollView>
             </ThemedView>
+        </View>
+    );
+}
+
+function Halo2ProofComponent() {
+    const [out, setOut] = useState("");
+    const [inputs, setInputs] = useState<Uint8Array>(new Uint8Array());
+    const [proof, setProof] = useState<Uint8Array>(new Uint8Array());
+    const [isValid, setIsValid] = useState<string>("");
+
+    async function genProof(): Promise<void> {
+        const circuitInputs = {
+            out: [out],
+        };
+
+        if (Platform.OS === "web") {
+            console.log("not implemented");
+        } else if (Platform.OS === "android" || Platform.OS === "ios") {
+            const srsFileName = "plonk_fibonacci_srs.bin";
+            const pkFileName = "plonk_fibonacci_pk.bin";
+            const srsAsset = Asset.fromModule(
+                require(`@/assets/keys/${srsFileName}`)
+            );
+            const pkAsset = Asset.fromModule(
+                require(`@/assets/keys/${pkFileName}`)
+            );
+            const srsFilePath = `${FileSystem.documentDirectory}${srsFileName}`;
+            const pkFilePath = `${FileSystem.documentDirectory}${pkFileName}`;
+            const srsFileInfo = await FileSystem.getInfoAsync(srsFilePath);
+            const pkFileInfo = await FileSystem.getInfoAsync(pkFilePath);
+            if (!srsFileInfo.exists || !pkFileInfo.exists) {
+                const srsFile = await srsAsset.downloadAsync();
+                const pkFile = await pkAsset.downloadAsync();
+                if (srsFile.localUri === null || pkFile.localUri === null) {
+                    throw new Error("Failed to download the file");
+                }
+                try {
+                    await FileSystem.moveAsync({
+                        from: srsFile.localUri,
+                        to: srsFilePath,
+                    });
+                    await FileSystem.moveAsync({
+                        from: pkFile.localUri,
+                        to: pkFilePath,
+                    });
+                } catch (error) {
+                    console.error("Error renaming the file:", error);
+                }
+            }
+
+            try {
+                const res: Halo2ProofResult = await generateHalo2Proof(
+                    srsFilePath.replace("file://", ""),
+                    pkFilePath.replace("file://", ""),
+                    circuitInputs
+                );
+                setProof(res.proof);
+                setInputs(res.inputs);
+            } catch (error) {
+                console.error("Error generating proof:", error);
+            }
+        }
+    }
+
+    async function verifyProof(): Promise<void> {
+        if (Platform.OS === "web") {
+            console.log("not implemented");
+        } else if (Platform.OS === "android" || Platform.OS === "ios") {
+            const srsFileName = "plonk_fibonacci_srs.bin";
+            const vkFileName = "plonk_fibonacci_vk.bin";
+            const srsAsset = Asset.fromModule(
+                require(`@/assets/keys/${srsFileName}`)
+            );
+            const vkAsset = Asset.fromModule(
+                require(`@/assets/keys/${vkFileName}`)
+            );
+            const srsFilePath = `${FileSystem.documentDirectory}${srsFileName}`;
+            const vkFilePath = `${FileSystem.documentDirectory}${vkFileName}`;
+            const srsFileInfo = await FileSystem.getInfoAsync(srsFilePath);
+            const vkFileInfo = await FileSystem.getInfoAsync(vkFilePath);
+            if (!srsFileInfo.exists || !vkFileInfo.exists) {
+                const srsFile = await srsAsset.downloadAsync();
+                const vkFile = await vkAsset.downloadAsync();
+                if (srsFile.localUri === null || vkFile.localUri === null) {
+                    throw new Error("Failed to download the file");
+                }
+                try {
+                    await FileSystem.moveAsync({
+                        from: srsFile.localUri,
+                        to: srsFilePath,
+                    });
+                    await FileSystem.moveAsync({
+                        from: vkFile.localUri,
+                        to: vkFilePath,
+                    });
+                } catch (error) {
+                    console.error("Error renaming the file:", error);
+                }
+            }
+            try {
+                const res: boolean = await verifyHalo2Proof(
+                    srsFilePath.replace("file://", ""),
+                    vkFilePath.replace("file://", ""),
+                    proof,
+                    inputs
+                );
+                setIsValid(res.toString());
+            } catch (error) {
+                console.error("Error verifying proof:", error);
+            }
+        }
+    }
+
+    return (
+        <View style={styles.proofContainer}>
+            <View style={styles.inputContainer}>
+                <Text style={styles.label}>a</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Enter value for out"
+                    value={out}
+                    onChangeText={setOut}
+                    keyboardType="numeric"
+                />
+            </View>
+            <Button title="Generate Halo2 Proof" onPress={() => genProof()} />
+            <Button title="Verify Halo2 Proof" onPress={() => verifyProof()} />
+            <ThemedView style={styles.stepContainer}>
+                <ThemedText type="subtitle">Proof is Valid:</ThemedText>
+                <Text style={styles.output}>{isValid}</Text>
+                <ThemedText type="subtitle">Public Signals:</ThemedText>
+                <ScrollView style={styles.outputScroll}>
+                    <Text style={styles.output}>{inputs}</Text>
+                </ScrollView>
+                <ThemedText type="subtitle">Proof:</ThemedText>
+                <ScrollView style={styles.outputScroll}>
+                    <Text style={styles.output}>{proof}</Text>
+                </ScrollView>
+            </ThemedView>
+        </View>
+    );
+}
+
+export default function HomeScreen() {
+    const [activeTab, setActiveTab] = useState<ProofType>("circom");
+
+    return (
+        <ParallaxScrollView
+            headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
+            headerImage={
+                <Image
+                    source={require("@/assets/images/partial-react-logo.png")}
+                    style={styles.reactLogo}
+                />
+            }
+        >
+            <View style={styles.tabContainer}>
+                <Pressable
+                    style={[
+                        styles.tab,
+                        activeTab === "circom" && styles.activeTab,
+                    ]}
+                    onPress={() => setActiveTab("circom")}
+                >
+                    <Text style={styles.tabText}>Circom Proof</Text>
+                </Pressable>
+                <Pressable
+                    style={[
+                        styles.tab,
+                        activeTab === "halo2" && styles.activeTab,
+                    ]}
+                    onPress={() => setActiveTab("halo2")}
+                >
+                    <Text style={styles.tabText}>Halo2 Proof</Text>
+                </Pressable>
+            </View>
+
+            {activeTab === "circom" ? (
+                <CircomProofComponent />
+            ) : (
+                <Halo2ProofComponent />
+            )}
         </ParallaxScrollView>
     );
 }
@@ -140,10 +384,35 @@ const styles = StyleSheet.create({
         left: 0,
         position: "absolute",
     },
-    output: {
-        fontSize: 16,
-        borderColor: "gray",
+    outputScroll: {
+        maxHeight: 150,
         borderWidth: 1,
+        borderColor: "gray",
+        marginBottom: 10,
+    },
+    output: {
+        fontSize: 14,
+        padding: 10,
+    },
+    tabContainer: {
+        flexDirection: "row",
+        marginBottom: 20,
+    },
+    tab: {
+        flex: 1,
+        padding: 15,
+        alignItems: "center",
+        borderBottomWidth: 2,
+        borderBottomColor: "#ccc",
+    },
+    activeTab: {
+        borderBottomColor: "#A1CEDC",
+    },
+    tabText: {
+        fontSize: 16,
+        fontWeight: "500",
+    },
+    proofContainer: {
         padding: 10,
     },
 });

@@ -10,24 +10,33 @@ import { ChangeEventPayload, MoproViewProps } from './src/Mopro.types';
 export type G1 = {
   x: string;
   y: string;
+  z: string;
 }
 
 // Define the G2 type
 export type G2 = {
   x: string[];
   y: string[];
+  z: string[];
 }
 
 // Define the ProofCalldata type
-export type ProofCalldata = {
+export type CircomProof = {
   a: G1;
   b: G2;
   c: G1;
+  protocol: string;
+  curve: string;
 }
 // Define the Result type
-export type Result = {
-  proof: ProofCalldata;
+export type CircomProofResult = {
+  proof: CircomProof;
   inputs: string[];
+}
+
+export type Halo2ProofResult = {
+  proof: Uint8Array;
+  inputs: Uint8Array;
 }
 
 // Get the native constant value.
@@ -37,12 +46,24 @@ export function hello(): string {
   return MoproModule.hello();
 }
 
-export async function generateCircomProofWeb(wasmPath: string, zkeyPath: string, circuitInputs: { [key: string]: string[] }): Promise<Result> {
+export async function generateCircomProofWeb(wasmPath: string, zkeyPath: string, circuitInputs: { [key: string]: string[] }): Promise<CircomProofResult> {
   return await MoproModule.generateCircomProofWeb(wasmPath, zkeyPath, circuitInputs);
 }
 
-export function generateCircomProof(zkeyPath: string, circuitInputs: string): Result {
-  return MoproModule.generateCircomProof(zkeyPath, circuitInputs);
+export async function generateCircomProof(zkeyPath: string, circuitInputs: string): Promise<CircomProofResult> {
+  return await MoproModule.generateCircomProof(zkeyPath, circuitInputs);
+}
+
+export async function verifyCircomProof(zkeyPath: string, proofResult: CircomProofResult): Promise<boolean> {
+  return await MoproModule.verifyCircomProof(zkeyPath, proofResult);
+}
+
+export async function generateHalo2Proof(srsPath: string, pkPath: string, circuitInputs: { [key: string]: string[] }): Promise<Halo2ProofResult> {
+  return await MoproModule.generateHalo2Proof(srsPath, pkPath, circuitInputs);
+}
+
+export async function verifyHalo2Proof(srsPath: string, vkPath: string, proof: Uint8Array, publicInput: Uint8Array): Promise<boolean> {
+  return await MoproModule.verifyHalo2Proof(srsPath, vkPath, proof, publicInput);
 }
 
 export async function setValueAsync(value: string) {
