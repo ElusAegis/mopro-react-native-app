@@ -14,7 +14,13 @@ npm install
 
 ### 2. Start the app
 
--   start an android emulator
+-   setup the `ANDROID_HOME` environment
+
+    ```bash
+    export ANDROID_HOME=~/Library/Android/sdk
+    ```
+
+    start an android emulator
 
     ```bash
     npm run android
