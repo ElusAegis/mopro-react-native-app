@@ -34,6 +34,15 @@ export type CircomProofResult = {
   inputs: string[];
 }
 
+export enum ProofLibOption {
+  Arkworks,
+  Rapidsnark
+}
+
+export type CircomProofLib = {
+  proofLib: ProofLibOption
+}
+
 export type Halo2ProofResult = {
   proof: Uint8Array;
   inputs: Uint8Array;
@@ -50,12 +59,12 @@ export async function generateCircomProofWeb(wasmPath: string, zkeyPath: string,
   return await MoproModule.generateCircomProofWeb(wasmPath, zkeyPath, circuitInputs);
 }
 
-export async function generateCircomProof(zkeyPath: string, circuitInputs: string): Promise<CircomProofResult> {
-  return await MoproModule.generateCircomProof(zkeyPath, circuitInputs);
+export async function generateCircomProof(zkeyPath: string, circuitInputs: string, proofLib: CircomProofLib): Promise<CircomProofResult> {
+  return await MoproModule.generateCircomProof(zkeyPath, circuitInputs, proofLib);
 }
 
-export async function verifyCircomProof(zkeyPath: string, proofResult: CircomProofResult): Promise<boolean> {
-  return await MoproModule.verifyCircomProof(zkeyPath, proofResult);
+export async function verifyCircomProof(zkeyPath: string, proofResult: CircomProofResult, proofLib: CircomProofLib): Promise<boolean> {
+  return await MoproModule.verifyCircomProof(zkeyPath, proofResult, proofLib);
 }
 
 export async function generateHalo2Proof(srsPath: string, pkPath: string, circuitInputs: { [key: string]: string[] }): Promise<Halo2ProofResult> {

@@ -45,7 +45,7 @@ class MoproModule : Module() {
     // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
     Function("hello") { "Hello world! 👋" }
 
-    AsyncFunction("generateCircomProof") { zkeyPath: String, circuitInputs: String ->
+    AsyncFunction("generateCircomProof") { zkeyPath: String, circuitInputs: String, expoProofLib: ExpoCircomProofLib ->
       try {
         val file = File(zkeyPath)
     
@@ -53,20 +53,22 @@ class MoproModule : Module() {
           throw CodedException("ZkeyFileNotFound", "The zkey file was not found at path: $zkeyPath", null)
         }
     
-        val res = generateCircomProof(file.absolutePath, circuitInputs, ProofLib.ARKWORKS)
+        val proofLib = if (expoProofLib.proofLib == ProofLibOption.arkworks) ProofLib.ARKWORKS else ProofLib.RAPIDSNARK
+        val res = generateCircomProof(file.absolutePath, circuitInputs, proofLib)
         ExpoCircomProofResult(convertCircomProof(res.proof), res.inputs)
       } catch (e: Exception) {
         throw CodedException("GenerateProofFailed", "Unknown error occurred during proof generation", e)
       }    
     }
 
-    AsyncFunction("verifyCircomProof") { zkeyPath: String, proofResult: ExpoCircomProofResult ->
+    AsyncFunction("verifyCircomProof") { zkeyPath: String, proofResult: ExpoCircomProofResult, expoProofLib: ExpoCircomProofLib ->
       try {
         val file = File(zkeyPath)
         if (!file.exists()) {
           throw CodedException("ZkeyFileNotFound", "The zkey file was not found at path: $zkeyPath", null)
         }
-        val isValid = verifyCircomProof(file.absolutePath, convertCircomProofResult(proofResult), ProofLib.ARKWORKS)
+        val proofLib = if (expoProofLib.proofLib == ProofLibOption.arkworks) ProofLib.ARKWORKS else ProofLib.RAPIDSNARK
+        val isValid = verifyCircomProof(file.absolutePath, convertCircomProofResult(proofResult), proofLib)
         isValid
     } catch (e: Exception) {
       throw CodedException("VerifyProofFailed", "Unknown error occurred during proof verification", e)

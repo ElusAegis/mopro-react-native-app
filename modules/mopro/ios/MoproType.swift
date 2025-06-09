@@ -48,6 +48,16 @@ struct ExpoCircomProofResult: Record {
 
 }
 
+enum ProofLibOption: Int, Enumerable {
+  case arkworks
+  case rapidsnark
+}
+
+struct ExpoCircomProofLib: Record {
+  @Field
+  var proofLib: ProofLibOption = .arkworks
+}
+
 struct ExpoHalo2ProofResult: Record {
   @Field
   var inputs: Data?

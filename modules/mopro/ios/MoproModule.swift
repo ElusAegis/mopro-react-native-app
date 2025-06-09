@@ -87,11 +87,12 @@ public class MoproModule: Module {
     }
 
     AsyncFunction("generateCircomProof") {
-      (zkeyPath: String, circuitInputs: String) -> ExpoCircomProofResult in
+      (zkeyPath: String, circuitInputs: String, expoProofLib: ExpoCircomProofLib) -> ExpoCircomProofResult in
 
       do {
+        let proofLib = expoProofLib.proofLib == ProofLibOption.arkworks ? ProofLib.arkworks : ProofLib.rapidsnark
         let res = try generateCircomProof(
-          zkeyPath: zkeyPath, circuitInputs: circuitInputs, proofLib: ProofLib.arkworks)
+          zkeyPath: zkeyPath, circuitInputs: circuitInputs, proofLib: proofLib)
         let result = ExpoCircomProofResult()
         result.inputs = res.inputs
         result.proof = convertCircomProof(proof: res.proof)
@@ -102,9 +103,10 @@ public class MoproModule: Module {
     }
 
     AsyncFunction("verifyCircomProof") {
-      (zkeyPath: String, proofResult: ExpoCircomProofResult) -> Bool in
+      (zkeyPath: String, proofResult: ExpoCircomProofResult, proofLib: ExpoCircomProofLib) -> Bool in
 
       do {
+        let proofLib = proofLib.proofLib == .arkworks ? ProofLib.arkworks : ProofLib.rapidsnark
         let isValid = try verifyCircomProof(
           zkeyPath: zkeyPath,
           proofResult: convertCircomProofResult(proofResult: proofResult),
