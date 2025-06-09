@@ -85,8 +85,9 @@ function CircomProofComponent() {
             }
 
             try {
+                // DO NOT change the proofLib if you don't build for rapidsnark
                 const proofLib: CircomProofLib = {
-                    proofLib: ProofLibOption.Arkworks
+                    proofLib: ProofLibOption.Arkworks,
                 };
                 const res: CircomProofResult = await generateCircomProof(
                     newFilePath.replace("file://", ""),
@@ -131,8 +132,9 @@ function CircomProofComponent() {
                     proof: proof,
                     inputs: inputs,
                 };
+                // DO NOT change the proofLib if you don't build for rapidsnark
                 const proofLib: CircomProofLib = {
-                    proofLib: ProofLibOption.Arkworks
+                    proofLib: ProofLibOption.Arkworks,
                 };
                 const res: boolean = await verifyCircomProof(
                     newFilePath.replace("file://", ""),

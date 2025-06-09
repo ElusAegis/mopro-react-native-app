@@ -20,7 +20,7 @@ npm install
     export ANDROID_HOME=~/Library/Android/sdk
     ```
 
-    start an android emulator
+    start an android emulator/device
 
     ```bash
     npm run android
@@ -30,6 +30,12 @@ npm install
 
     ```bash
     npm run ios
+    ```
+
+    start an iOS device
+
+    ```bash
+    npm run ios:device
     ```
 
 -   start a web app
@@ -45,6 +51,51 @@ npm install
 
 -   Copy the `MoproAndroidBindings/jniLibs` directory to `modules/mopro/android/src/main/jniLibs`. <br/>
     And copy `MoproAndroidBindings/uniffi` directory to `modules/mopro/android/src/main/java/uniffi`. <br/>
+
+### 4. Define React Native Module
+
+-   Define React Native's module APIs to pass messages between React Native and your desired platforms.
+    -   **iOS:**
+        -   [`modules/mopro/ios/MoproModule.swift`](modules/mopro/ios/MoproModule.swift)
+    -   **Android**
+        -   [`modules/mopro/android/src/main/java/expo/modules/mopro/MoproModule.kt`](modules/mopro/android/src/main/java/expo/modules/mopro/MoproModule.kt)
+    -   **Browser**
+        -   [`modules/mopro/src/MoproModule.web.ts`](modules/mopro/src/MoproModule.web.ts)
+    -   **React Native**
+        -   [`modules/mopro/index.ts`](modules/mopro/index.ts)
+
+### 5. Use the React Native Module
+
+-   For example, in [`app/(tabs)/index.tsx`](<app/(tabs)/index.tsx>)
+
+    ```ts
+    import {
+        generateCircomProof,
+        verifyCircomProof,
+        CircomProofLib,
+        ProofLibOption,
+    } from "@/modules/mopro";
+
+    const proofLib: CircomProofLib = {
+        proofLib: ProofLibOption.Arkworks,
+    };
+    const circuitInputs = {
+        a: ["3"],
+        b: ["5"],
+    };
+
+    const res: CircomProofResult = await generateCircomProof(
+        zkeyPath.replace("file://", ""),
+        JSON.stringify(circuitInputs),
+        proofLib
+    );
+
+    const valid = await verifyCircomProof(
+        zkeyPath.replace("file://", ""),
+        res,
+        proofLib
+    );
+    ```
 
 ## Screenshots
 
