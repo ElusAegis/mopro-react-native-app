@@ -2,6 +2,7 @@ package expo.modules.mopro
 
 import expo.modules.kotlin.records.Field
 import expo.modules.kotlin.records.Record
+import expo.modules.kotlin.types.Enumerable
 
 class ExpoG1 : Record {
     @Field var x: String?
@@ -62,6 +63,15 @@ class ExpoCircomProofResult : Record {
     }
 }
 
+enum class ProofLibOption(val value: Int) : Enumerable {
+    arkworks(0),
+    rapidsnark(1)
+  }
+  
+class ExpoCircomProofLib : Record {
+    @Field
+    val proofLib: ProofLibOption = ProofLibOption.arkworks
+}
 
 class ExpoHalo2ProofResult: Record {
     @Field var proof: ByteArray?

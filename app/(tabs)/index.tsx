@@ -24,6 +24,8 @@ import {
     CircomProof,
     generateNoirProof,
     verifyNoirProof,
+    ProofLibOption,
+    CircomProofLib,
 } from "@/modules/mopro";
 import * as FileSystem from "expo-file-system";
 import { useState } from "react";
@@ -83,9 +85,14 @@ function CircomProofComponent() {
             }
 
             try {
+                // DO NOT change the proofLib if you don't build for rapidsnark
+                const proofLib: CircomProofLib = {
+                    proofLib: ProofLibOption.Arkworks,
+                };
                 const res: CircomProofResult = await generateCircomProof(
                     newFilePath.replace("file://", ""),
-                    JSON.stringify(circuitInputs)
+                    JSON.stringify(circuitInputs),
+                    proofLib
                 );
                 setProof(res.proof);
                 setInputs(res.inputs);
@@ -125,9 +132,14 @@ function CircomProofComponent() {
                     proof: proof,
                     inputs: inputs,
                 };
+                // DO NOT change the proofLib if you don't build for rapidsnark
+                const proofLib: CircomProofLib = {
+                    proofLib: ProofLibOption.Arkworks,
+                };
                 const res: boolean = await verifyCircomProof(
                     newFilePath.replace("file://", ""),
-                    circomProofResult
+                    circomProofResult,
+                    proofLib
                 );
                 setIsValid(res.toString());
             } catch (error) {
